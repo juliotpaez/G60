@@ -29,6 +29,8 @@ impl std::error::Error for Error {}
 pub enum EncodingError {
     /// The result buffer has not enough space to held the encoding result.
     NotEnoughSpaceInSlice { actual: usize, required: usize },
+    /// A writer error.
+    WritingError(std::io::ErrorKind),
 }
 
 impl Display for EncodingError {
@@ -42,6 +44,12 @@ impl std::error::Error for EncodingError {}
 impl From<EncodingError> for Error {
     fn from(v: EncodingError) -> Self {
         Self::Encoding(v)
+    }
+}
+
+impl From<std::io::Error> for EncodingError {
+    fn from(v: std::io::Error) -> Self {
+        Self::WritingError(v.kind())
     }
 }
 
