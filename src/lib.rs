@@ -8,6 +8,7 @@ mod constants;
 mod decoding;
 mod encoding;
 mod errors;
+mod utils;
 
 static CHAR_RANGE_NUMBERS: RangeInclusive<u8> = b'0'..=b'9';
 static CHAR_RANGE_LOWERCASE: RangeInclusive<u8> = b'a'..=b'z';

@@ -1,8 +1,7 @@
 use std::io::Write;
 
-use num_integer::Integer;
-
 use crate::constants::UTF8_TO_ENCODED_MAP;
+use crate::utils::div_rem;
 use crate::{verify, DecodingError};
 
 /// Encodes a string into a G60 encoding format.
@@ -135,17 +134,17 @@ pub unsafe fn decode_in_buffer_unchecked(
             None => 0,
         };
 
-        let (b1, r1) = (60 * c0 + c1).div_rem(&14);
-        let (b2, r2) = c2.div_rem(&3);
-        let (b3, r3) = c4.div_rem(&20);
+        let (b1, r1) = div_rem(60 * c0 + c1, 14);
+        let (b2, r2) = div_rem(c2, 3);
+        let (b3, r3) = div_rem(c4, 20);
         let aux = 3 * c3 + b3;
         let b3_bis = aux >> 1;
         let r3_bis = aux & 0x1;
-        let (b4, r4) = (60 * r3 + c5).div_rem(&9);
+        let (b4, r4) = div_rem(60 * r3 + c5, 9);
         let b5 = c6 >> 1;
         let r5 = c6 & 0x1;
-        let (b6, r6) = (60 * c7 + c8).div_rem(&24);
-        let (b7, r7) = c9.div_rem(&5);
+        let (b6, r6) = div_rem(60 * c7 + c8, 24);
+        let (b7, r7) = div_rem(c9, 5);
 
         let decoded = [
             b1 as u8,
@@ -208,17 +207,17 @@ pub unsafe fn decode_in_buffer_unchecked(
             None => 0,
         };
 
-        let (b1, r1) = (60 * c0 + c1).div_rem(&14);
-        let (b2, r2) = c2.div_rem(&3);
-        let (b3, r3) = c4.div_rem(&20);
+        let (b1, r1) = div_rem(60 * c0 + c1, 14);
+        let (b2, r2) = div_rem(c2, 3);
+        let (b3, r3) = div_rem(c4, 20);
         let aux = 3 * c3 + b3;
         let b3_bis = aux >> 1;
         let r3_bis = aux & 0x1;
-        let (b4, r4) = (60 * r3 + c5).div_rem(&9);
+        let (b4, r4) = div_rem(60 * r3 + c5, 9);
         let b5 = c6 >> 1;
         let r5 = c6 & 0x1;
-        let (b6, r6) = (60 * c7 + c8).div_rem(&24);
-        let (b7, r7) = c9.div_rem(&5);
+        let (b6, r6) = div_rem(60 * c7 + c8, 24);
+        let (b7, r7) = div_rem(c9, 5);
 
         let decoded = [
             b1 as u8,

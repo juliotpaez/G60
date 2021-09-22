@@ -1,7 +1,19 @@
 [package]
 name = "g60"
 version = "0.1.0"
+authors = ["Julio Treviño <julio.tpaez@gmail.com>"]
+description = "encodes and decodes G60 as bytes or utf8"
+repository = "https://github.com/juliotpaez/rust-g60"
+documentation = "https://docs.rs/g60"
+readme = "README.md"
+keywords = ["g60", "utf8", "encode", "decode"]
+categories = ["encoding"]
+license = "MIT"
 edition = "2018"
 
-[dependencies]
-num-integer = "0.1.44"
+[[bench]]
+name = "benchmarks"
+harness = false
+
+[dev-dependencies]
+criterion = "0.3.5"

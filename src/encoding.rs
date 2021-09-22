@@ -1,8 +1,7 @@
 use std::io::Write;
 
-use num_integer::Integer;
-
 use crate::constants::ENCODED_TO_UTF8_MAP;
+use crate::utils::div_rem;
 use crate::EncodingError;
 
 /// Encodes a string into a G60 encoding format.
@@ -45,19 +44,19 @@ pub fn encode_in_buffer(content: &[u8], mut buffer: &mut [u8]) -> Result<usize, 
         let c_g = chunk[6] as usize;
         let c_h = chunk[7] as usize;
 
-        let (c2, r2) = c_b.div_rem(&20);
-        let (c1, r1) = (14 * c_a + c2).div_rem(&60);
-        let (c3, r3) = c_c.div_rem(&90);
+        let (c2, r2) = div_rem(c_b, 20);
+        let (c1, r1) = div_rem(14 * c_a + c2, 60);
+        let (c3, r3) = div_rem(c_c, 90);
         let b3h = c_d >> 7;
         let b3l = c_d & 0x7F;
-        let (c4, r4) = ((r3 << 1) + b3h).div_rem(&3);
-        let (c6, r6) = c_e.div_rem(&30);
-        let (c5, r5) = (9 * b3l + c6).div_rem(&60);
-        let (c7, r7) = c_f.div_rem(&150);
-        let (c8a, r8a) = c_g.div_rem(&144);
-        let (c8, r8) = ((r7 << 1) + c8a).div_rem(&5);
-        let (c9, r9) = r8a.div_rem(&12);
-        let (c10, r10) = c_h.div_rem(&60);
+        let (c4, r4) = div_rem((r3 << 1) + b3h, 3);
+        let (c6, r6) = div_rem(c_e, 30);
+        let (c5, r5) = div_rem(9 * b3l + c6, 60);
+        let (c7, r7) = div_rem(c_f, 150);
+        let (c8a, r8a) = div_rem(c_g, 144);
+        let (c8, r8) = div_rem((r7 << 1) + c8a, 5);
+        let (c9, r9) = div_rem(r8a, 12);
+        let (c10, r10) = div_rem(c_h, 60);
 
         let encoded = [
             ENCODED_TO_UTF8_MAP[c1],
@@ -90,19 +89,19 @@ pub fn encode_in_buffer(content: &[u8], mut buffer: &mut [u8]) -> Result<usize, 
         let c_g = *chunk.get(6).unwrap_or(&0) as usize;
         let c_h = *chunk.get(7).unwrap_or(&0) as usize;
 
-        let (c2, r2) = c_b.div_rem(&20);
-        let (c1, r1) = (14 * c_a + c2).div_rem(&60);
-        let (c3, r3) = c_c.div_rem(&90);
+        let (c2, r2) = div_rem(c_b, 20);
+        let (c1, r1) = div_rem(14 * c_a + c2, 60);
+        let (c3, r3) = div_rem(c_c, 90);
         let b3h = c_d >> 7;
         let b3l = c_d & 0x7F;
-        let (c4, r4) = ((r3 << 1) + b3h).div_rem(&3);
-        let (c6, r6) = c_e.div_rem(&30);
-        let (c5, r5) = (9 * b3l + c6).div_rem(&60);
-        let (c7, r7) = c_f.div_rem(&150);
-        let (c8a, r8a) = c_g.div_rem(&144);
-        let (c8, r8) = ((r7 << 1) + c8a).div_rem(&5);
-        let (c9, r9) = r8a.div_rem(&12);
-        let (c10, r10) = c_h.div_rem(&60);
+        let (c4, r4) = div_rem((r3 << 1) + b3h, 3);
+        let (c6, r6) = div_rem(c_e, 30);
+        let (c5, r5) = div_rem(9 * b3l + c6, 60);
+        let (c7, r7) = div_rem(c_f, 150);
+        let (c8a, r8a) = div_rem(c_g, 144);
+        let (c8, r8) = div_rem((r7 << 1) + c8a, 5);
+        let (c9, r9) = div_rem(r8a, 12);
+        let (c10, r10) = div_rem(c_h, 60);
 
         let encoded = [
             ENCODED_TO_UTF8_MAP[c1],
