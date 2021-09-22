@@ -8,13 +8,12 @@ use crate::{verify, DecodingError};
 ///
 /// # Errors
 /// An error will be arise in the following cases:
-/// - if `buffer` does not have at least `ceil(8 * encoded.len() / 11)` of size.
 /// - if `encoded` is not a valid G60 encoded string.
-/// - if `encoded` is not a valid UTF8 string.
+/// - if result is not a valid UTF8 string.
 pub fn decode_to_string(encoded: &str) -> Result<String, DecodingError> {
-    let buffer = decode(encoded)?;
+    let slice = decode(encoded)?;
 
-    match String::from_utf8(buffer) {
+    match String::from_utf8(slice) {
         Ok(v) => Ok(v),
         Err(e) => Err(DecodingError::InvalidUTF8String {
             bytes: e.into_bytes(),
@@ -26,67 +25,63 @@ pub fn decode_to_string(encoded: &str) -> Result<String, DecodingError> {
 ///
 /// # Errors
 /// An error will be arise in the following cases:
-/// - if `buffer` does not have at least `ceil(8 * encoded.len() / 11)` of size.
 /// - if `encoded` is not a valid G60 encoded string.
 pub fn decode(encoded: &str) -> Result<Vec<u8>, DecodingError> {
     verify(encoded)?;
 
-    let mut buffer = vec![0; compute_buffer_size(encoded.len())];
+    let mut slice = vec![0; compute_decoded_size(encoded.len())];
 
     unsafe {
-        decode_in_buffer_unchecked(encoded, &mut buffer)?;
+        decode_in_slice_unchecked(encoded, &mut slice)?;
     }
 
-    Ok(buffer)
+    Ok(slice)
 }
 
 /// Decodes a G60 encoding string to a list of bytes.
-/// The result is placed into `buffer` and returns the number of elements written.
+/// The result is placed into `slice` and returns the number of elements written.
 ///
 /// # Errors
 /// An error will be arise in the following cases:
-/// - if `buffer` does not have at least `ceil(8 * encoded.len() / 11)` of size.
 /// - if `encoded` is not a valid G60 encoded string.
-pub fn decode_in_buffer(encoded: &str, buffer: &mut [u8]) -> Result<usize, DecodingError> {
+/// - if `slice` does not have at least `ceil(8 * encoded.len() / 11)` of size.
+pub fn decode_in_slice(encoded: &str, slice: &mut [u8]) -> Result<usize, DecodingError> {
     verify(encoded)?;
 
-    unsafe { decode_in_buffer_unchecked(encoded, buffer) }
+    unsafe { decode_in_slice_unchecked(encoded, slice) }
 }
 
 /// Decodes a G60 encoding string to a list of bytes without checking for its validity.
 ///
 /// # Safety
 /// This method will panic or return an undefined value if `encoded` is not a valid G60 string.
-///
-/// # Errors
-/// An error will be arise if `buffer` does not have at least `ceil(8 * encoded.len() / 11)` of size.
-pub unsafe fn decode_unchecked(encoded: &str) -> Result<Vec<u8>, DecodingError> {
-    let mut buffer = vec![0; compute_buffer_size(encoded.len())];
+pub unsafe fn decode_unchecked(encoded: &str) -> Vec<u8> {
+    let mut slice = vec![0; compute_decoded_size(encoded.len())];
 
-    decode_in_buffer_unchecked(encoded, &mut buffer)?;
+    decode_in_slice_unchecked(encoded, &mut slice).unwrap();
 
-    Ok(buffer)
+    slice
 }
 
 /// Decodes a G60 encoding string to a list of bytes without checking for its validity.
-/// The result is placed into `buffer` and returns the number of elements written.
+/// The result is placed into `slice` and returns the number of elements written.
 ///
 /// # Safety
 /// This method will panic or return an undefined value if `encoded` is not a valid G60 string.
 ///
 /// # Errors
-/// An error will be arise if `buffer` does not have at least `ceil(8 * encoded.len() / 11)` of size.
-pub unsafe fn decode_in_buffer_unchecked(
+/// An error will be arise if `slice` does not have at least `ceil(8 * encoded.len() / 11)` of size.
+pub unsafe fn decode_in_slice_unchecked(
     encoded: &str,
-    mut buffer: &mut [u8],
+    mut slice: &mut [u8],
 ) -> Result<usize, DecodingError> {
     let bytes = encoded.as_bytes();
-    let required_buffer_size = compute_buffer_size(bytes.len());
+    let required_slice_size = compute_decoded_size(bytes.len());
 
-    if buffer.len() < required_buffer_size {
-        return Err(DecodingError::NotEnoughSpaceInBuffer {
-            actual: buffer.len(),
-            required: required_buffer_size,
+    if slice.len() < required_slice_size {
+        return Err(DecodingError::NotEnoughSpaceInSlice {
+            actual: slice.len(),
+            required: required_slice_size,
         });
     }
 
@@ -157,7 +152,7 @@ pub unsafe fn decode_in_buffer_unchecked(
             (60 * r7 + c10) as u8,
         ];
 
-        buffer.write_all(&decoded).unwrap();
+        slice.write_all(&decoded).unwrap();
     }
 
     // Last incomplete group.
@@ -230,11 +225,11 @@ pub unsafe fn decode_in_buffer_unchecked(
             (60 * r7 + c10) as u8,
         ];
 
-        let elements_to_write = compute_buffer_size(last_group_length);
-        buffer.write_all(&decoded[..elements_to_write]).unwrap();
+        let elements_to_write = compute_decoded_size(last_group_length);
+        slice.write_all(&decoded[..elements_to_write]).unwrap();
     }
 
-    Ok(required_buffer_size)
+    Ok(required_slice_size)
 }
 
 // ----------------------------------------------------------------------------
@@ -242,7 +237,7 @@ pub unsafe fn decode_in_buffer_unchecked(
 // ----------------------------------------------------------------------------
 
 /// Computes `ceil(8 * encoded_length / 11)` faster using only integers.
-fn compute_buffer_size(encoded_length: usize) -> usize {
+fn compute_decoded_size(encoded_length: usize) -> usize {
     (encoded_length << 3) / 11
 }
 
@@ -257,10 +252,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_compute_buffer_size() {
+    fn test_compute_decoded_size() {
         for encoded_length in 0usize..100 {
             let real_value = (8.0 * encoded_length as f64 / 11.0).floor() as usize;
-            let computed_value = compute_buffer_size(encoded_length);
+            let computed_value = compute_decoded_size(encoded_length);
 
             assert_eq!(
                 computed_value, real_value,
@@ -270,7 +265,7 @@ mod tests {
         }
     }
 
-    /// This will test also `decode`, `decode_in_buffer` and `decode_in_buffer_unchecked`.
+    /// This will test also `decode`, `decode_in_slice` and `decode_in_slice_unchecked`.
     #[test]
     fn test_decode_to_string_ok() {
         let test = "Gt4CGFiHehzRzjCF16";
@@ -286,7 +281,7 @@ mod tests {
         assert_eq!(decoded, "Hella, would???", "Incorrect for '{}'", test);
     }
 
-    /// This will test also `decode`, `decode_in_buffer` and `decode_in_buffer_unchecked`.
+    /// This will test also `decode`, `decode_in_slice` and `decode_in_slice_unchecked`.
     #[test]
     fn test_decode_to_string_err() {
         let test = "Gt4CGFiHehzRzjCF16x";
@@ -314,47 +309,47 @@ mod tests {
         );
     }
 
-    /// This will test also `decode_in_buffer` and `decode_in_buffer_unchecked`.
+    /// This will test also `decode_in_slice` and `decode_in_slice_unchecked`.
     #[test]
-    fn test_decode_in_buffer_exact_buffer() {
+    fn test_decode_in_slice_exact_slice() {
         let test = "Gt4CGFiHehzRzjCF16";
-        let mut result_buffer = vec![0; 13];
+        let mut result_slice = vec![0; 13];
         let decoded_chars =
-            decode_in_buffer(test, &mut result_buffer).expect("The decoding must succeed");
+            decode_in_slice(test, &mut result_slice).expect("The decoding must succeed");
 
         let result = b"Hello, world!".to_vec();
 
         assert_eq!(decoded_chars, 13, "Incorrect chars");
-        assert_eq!(result_buffer, result, "Incorrect buffer result");
+        assert_eq!(result_slice, result, "Incorrect slice result");
     }
 
-    /// This will test also `decode_in_buffer` and `decode_in_buffer_unchecked`.
+    /// This will test also `decode_in_slice` and `decode_in_slice_unchecked`.
     #[test]
-    fn test_decode_in_buffer_bigger_buffer() {
+    fn test_decode_in_slice_bigger_slice() {
         let test = "Gt4CGFiHehzRzjCF16";
-        let mut result_buffer = vec![0; 15];
+        let mut result_slice = vec![0; 15];
         let decoded_chars =
-            decode_in_buffer(test, &mut result_buffer).expect("The decoding must succeed");
+            decode_in_slice(test, &mut result_slice).expect("The decoding must succeed");
 
         let mut result = b"Hello, world!".to_vec();
         result.push(0);
         result.push(0);
 
         assert_eq!(decoded_chars, 13, "Incorrect chars");
-        assert_eq!(result_buffer, result, "Incorrect buffer result");
+        assert_eq!(result_slice, result, "Incorrect slice result");
     }
 
-    /// This will test also `decode_in_buffer` and `decode_in_buffer_unchecked`.
+    /// This will test also `decode_in_slice` and `decode_in_slice_unchecked`.
     #[test]
-    fn test_decode_in_buffer_shorter_buffer() {
+    fn test_decode_in_slice_shorter_slice() {
         let test = "Gt4CGFiHehzRzjCF16";
-        let mut result_buffer = vec![0; 10];
+        let mut result_slice = vec![0; 10];
         let error =
-            decode_in_buffer(test, &mut result_buffer).expect_err("The decoding cannot succeed");
+            decode_in_slice(test, &mut result_slice).expect_err("The decoding cannot succeed");
 
         assert_eq!(
             error,
-            DecodingError::NotEnoughSpaceInBuffer {
+            DecodingError::NotEnoughSpaceInSlice {
                 actual: 10,
                 required: 13,
             },

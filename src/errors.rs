@@ -28,7 +28,7 @@ impl std::error::Error for Error {}
 #[derive(Debug, Eq, PartialEq)]
 pub enum EncodingError {
     /// The result buffer has not enough space to held the encoding result.
-    NotEnoughSpaceInBuffer { actual: usize, required: usize },
+    NotEnoughSpaceInSlice { actual: usize, required: usize },
 }
 
 impl Display for EncodingError {
@@ -57,7 +57,7 @@ pub enum DecodingError {
     /// The decoded bytes are not a valid UTF8 string.
     InvalidUTF8String { bytes: Vec<u8> },
     /// The result buffer has not enough space to held the decoding result.
-    NotEnoughSpaceInBuffer { actual: usize, required: usize },
+    NotEnoughSpaceInSlice { actual: usize, required: usize },
 }
 
 impl Display for DecodingError {

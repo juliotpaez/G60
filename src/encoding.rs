@@ -11,25 +11,25 @@ pub fn encode_str(content: &str) -> String {
 
 /// Encodes a list of bytes into a G60 encoding format.
 pub fn encode(content: &[u8]) -> String {
-    let mut buffer = vec![0; compute_buffer_size(content.len())];
+    let mut slice = vec![0; compute_encoded_size(content.len())];
 
-    encode_in_buffer(content, &mut buffer).unwrap();
+    encode_in_slice(content, &mut slice).unwrap();
 
-    unsafe { String::from_utf8_unchecked(buffer) }
+    unsafe { String::from_utf8_unchecked(slice) }
 }
 
 /// Encodes a list of bytes into a G60 encoding format.
-/// The result is placed into `buffer` and returns the number of elements written.
+/// The result is placed into `slice` and returns the number of elements written.
 ///
 /// # Errors
-/// An error will be arise if `buffer` does not have at least `ceil(11 * content.len() / 8)` of size.
-pub fn encode_in_buffer(content: &[u8], mut buffer: &mut [u8]) -> Result<usize, EncodingError> {
-    let required_buffer_size = compute_buffer_size(content.len());
+/// An error will be arise if `slice` does not have at least `ceil(11 * content.len() / 8)` of size.
+pub fn encode_in_slice(content: &[u8], mut slice: &mut [u8]) -> Result<usize, EncodingError> {
+    let required_slice_size = compute_encoded_size(content.len());
 
-    if buffer.len() < required_buffer_size {
-        return Err(EncodingError::NotEnoughSpaceInBuffer {
-            actual: buffer.len(),
-            required: required_buffer_size,
+    if slice.len() < required_slice_size {
+        return Err(EncodingError::NotEnoughSpaceInSlice {
+            actual: slice.len(),
+            required: required_slice_size,
         });
     }
 
@@ -72,7 +72,7 @@ pub fn encode_in_buffer(content: &[u8], mut buffer: &mut [u8]) -> Result<usize, 
             ENCODED_TO_UTF8_MAP[r10],
         ];
 
-        buffer.write_all(&encoded).unwrap();
+        slice.write_all(&encoded).unwrap();
     }
 
     // Last incomplete group.
@@ -117,11 +117,11 @@ pub fn encode_in_buffer(content: &[u8], mut buffer: &mut [u8]) -> Result<usize, 
             ENCODED_TO_UTF8_MAP[r10],
         ];
 
-        let elements_to_write = compute_buffer_size(last_group_length);
-        buffer.write_all(&encoded[..elements_to_write]).unwrap();
+        let elements_to_write = compute_encoded_size(last_group_length);
+        slice.write_all(&encoded[..elements_to_write]).unwrap();
     }
 
-    Ok(required_buffer_size)
+    Ok(required_slice_size)
 }
 
 // ----------------------------------------------------------------------------
@@ -129,7 +129,7 @@ pub fn encode_in_buffer(content: &[u8], mut buffer: &mut [u8]) -> Result<usize, 
 // ----------------------------------------------------------------------------
 
 /// Computes `ceil(11 * content_length / 8)` faster using only integers.
-fn compute_buffer_size(content_length: usize) -> usize {
+fn compute_encoded_size(content_length: usize) -> usize {
     (11 * content_length + 7) >> 3
 }
 
@@ -142,10 +142,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_compute_buffer_size() {
+    fn test_compute_encoded_size() {
         for content_length in 0usize..100 {
             let real_value = (11.0 * content_length as f64 / 8.0).ceil() as usize;
-            let computed_value = compute_buffer_size(content_length);
+            let computed_value = compute_encoded_size(content_length);
 
             assert_eq!(
                 computed_value, real_value,
@@ -155,7 +155,7 @@ mod tests {
         }
     }
 
-    /// This will test also `encode` and `encode_in_buffer`.
+    /// This will test also `encode` and `encode_in_slice`.
     #[test]
     fn test_encode_str() {
         let test = "Hello, world!";
@@ -172,43 +172,43 @@ mod tests {
     }
 
     #[test]
-    fn test_encode_in_buffer_exact_buffer() {
+    fn test_encode_in_slice_exact_slice() {
         let test = "Hello, world!";
-        let mut result_buffer = vec![0; 18];
-        let encoded_chars = encode_in_buffer(test.as_bytes(), &mut result_buffer)
-            .expect("The encoding must succeed");
+        let mut result_slice = vec![0; 18];
+        let encoded_chars =
+            encode_in_slice(test.as_bytes(), &mut result_slice).expect("The encoding must succeed");
 
         let result = b"Gt4CGFiHehzRzjCF16".to_vec();
 
         assert_eq!(encoded_chars, 18, "Incorrect chars");
-        assert_eq!(result_buffer, result, "Incorrect buffer result");
+        assert_eq!(result_slice, result, "Incorrect slice result");
     }
 
     #[test]
-    fn test_encode_in_buffer_bigger_buffer() {
+    fn test_encode_in_slice_bigger_slice() {
         let test = "Hello, world!";
-        let mut result_buffer = vec![0; 20];
-        let encoded_chars = encode_in_buffer(test.as_bytes(), &mut result_buffer)
-            .expect("The encoding must succeed");
+        let mut result_slice = vec![0; 20];
+        let encoded_chars =
+            encode_in_slice(test.as_bytes(), &mut result_slice).expect("The encoding must succeed");
 
         let mut result = b"Gt4CGFiHehzRzjCF16".to_vec();
         result.push(0);
         result.push(0);
 
         assert_eq!(encoded_chars, 18, "Incorrect chars");
-        assert_eq!(result_buffer, result, "Incorrect buffer result");
+        assert_eq!(result_slice, result, "Incorrect slice result");
     }
 
     #[test]
-    fn test_encode_in_buffer_shorter_buffer() {
+    fn test_encode_in_slice_shorter_slice() {
         let test = "Hello, world!";
-        let mut result_buffer = vec![0; 15];
-        let error = encode_in_buffer(test.as_bytes(), &mut result_buffer)
+        let mut result_slice = vec![0; 15];
+        let error = encode_in_slice(test.as_bytes(), &mut result_slice)
             .expect_err("The encoding cannot succeed");
 
         assert_eq!(
             error,
-            EncodingError::NotEnoughSpaceInBuffer {
+            EncodingError::NotEnoughSpaceInSlice {
                 actual: 15,
                 required: 18,
             },
