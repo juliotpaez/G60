@@ -116,7 +116,7 @@ fn encode_benchmarks(c: &mut Criterion, label: &str, byte_sizes: &[usize]) {
     let mut group = c.benchmark_group(label);
     group
         .warm_up_time(std::time::Duration::from_millis(500))
-        .measurement_time(std::time::Duration::from_secs(3));
+        .measurement_time(std::time::Duration::from_secs(15));
 
     for size in byte_sizes {
         group
@@ -138,7 +138,7 @@ fn decode_benchmarks(c: &mut Criterion, label: &str, byte_sizes: &[usize]) {
     for size in byte_sizes {
         group
             .warm_up_time(std::time::Duration::from_millis(500))
-            .measurement_time(std::time::Duration::from_secs(3))
+            .measurement_time(std::time::Duration::from_secs(15))
             .throughput(Throughput::Bytes(*size as u64))
             .bench_with_input(BenchmarkId::new("decode", size), size, do_decode_bench)
             .bench_with_input(
