@@ -56,6 +56,9 @@ pub fn decode_in_buffer(encoded: &str, buffer: &mut [u8]) -> Result<usize, Decod
 
 /// Decodes a G60 encoding string to a list of bytes without checking for its validity.
 ///
+/// # Safety
+/// This method will panic or return an undefined value if `encoded` is not a valid G60 string.
+///
 /// # Errors
 /// An error will be arise if `buffer` does not have at least `ceil(8 * encoded.len() / 11)` of size.
 pub unsafe fn decode_unchecked(encoded: &str) -> Result<Vec<u8>, DecodingError> {
@@ -68,6 +71,9 @@ pub unsafe fn decode_unchecked(encoded: &str) -> Result<Vec<u8>, DecodingError> 
 
 /// Decodes a G60 encoding string to a list of bytes without checking for its validity.
 /// The result is placed into `buffer` and returns the number of elements written.
+///
+/// # Safety
+/// This method will panic or return an undefined value if `encoded` is not a valid G60 string.
 ///
 /// # Errors
 /// An error will be arise if `buffer` does not have at least `ceil(8 * encoded.len() / 11)` of size.

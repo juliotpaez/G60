@@ -36,28 +36,28 @@ pub fn encode_in_buffer(content: &[u8], mut buffer: &mut [u8]) -> Result<usize, 
 
     // Complete groups.
     for chunk in content.chunks_exact(8) {
-        let a = chunk[0] as usize;
-        let b = chunk[1] as usize;
-        let c = chunk[2] as usize;
-        let d = chunk[3] as usize;
-        let e = chunk[4] as usize;
-        let f = chunk[5] as usize;
-        let g = chunk[6] as usize;
-        let h = chunk[7] as usize;
+        let c_a = chunk[0] as usize;
+        let c_b = chunk[1] as usize;
+        let c_c = chunk[2] as usize;
+        let c_d = chunk[3] as usize;
+        let c_e = chunk[4] as usize;
+        let c_f = chunk[5] as usize;
+        let c_g = chunk[6] as usize;
+        let c_h = chunk[7] as usize;
 
-        let (c2, r2) = b.div_rem(&20);
-        let (c1, r1) = (14 * a + c2).div_rem(&60);
-        let (c3, r3) = c.div_rem(&90);
-        let b3h = d >> 7;
-        let b3l = d & 0x7F;
+        let (c2, r2) = c_b.div_rem(&20);
+        let (c1, r1) = (14 * c_a + c2).div_rem(&60);
+        let (c3, r3) = c_c.div_rem(&90);
+        let b3h = c_d >> 7;
+        let b3l = c_d & 0x7F;
         let (c4, r4) = ((r3 << 1) + b3h).div_rem(&3);
-        let (c6, r6) = e.div_rem(&30);
+        let (c6, r6) = c_e.div_rem(&30);
         let (c5, r5) = (9 * b3l + c6).div_rem(&60);
-        let (c7, r7) = f.div_rem(&150);
-        let (c8a, r8a) = g.div_rem(&144);
+        let (c7, r7) = c_f.div_rem(&150);
+        let (c8a, r8a) = c_g.div_rem(&144);
         let (c8, r8) = ((r7 << 1) + c8a).div_rem(&5);
         let (c9, r9) = r8a.div_rem(&12);
-        let (c10, r10) = h.div_rem(&60);
+        let (c10, r10) = c_h.div_rem(&60);
 
         let encoded = [
             ENCODED_TO_UTF8_MAP[c1],
@@ -81,28 +81,28 @@ pub fn encode_in_buffer(content: &[u8], mut buffer: &mut [u8]) -> Result<usize, 
     if last_group_length != 0 {
         let chunk = &content[content.len() - last_group_length..];
 
-        let a = chunk[0] as usize;
-        let b = *chunk.get(1).unwrap_or(&0) as usize;
-        let c = *chunk.get(2).unwrap_or(&0) as usize;
-        let d = *chunk.get(3).unwrap_or(&0) as usize;
-        let e = *chunk.get(4).unwrap_or(&0) as usize;
-        let f = *chunk.get(5).unwrap_or(&0) as usize;
-        let g = *chunk.get(6).unwrap_or(&0) as usize;
-        let h = *chunk.get(7).unwrap_or(&0) as usize;
+        let c_a = chunk[0] as usize;
+        let c_b = *chunk.get(1).unwrap_or(&0) as usize;
+        let c_c = *chunk.get(2).unwrap_or(&0) as usize;
+        let c_d = *chunk.get(3).unwrap_or(&0) as usize;
+        let c_e = *chunk.get(4).unwrap_or(&0) as usize;
+        let c_f = *chunk.get(5).unwrap_or(&0) as usize;
+        let c_g = *chunk.get(6).unwrap_or(&0) as usize;
+        let c_h = *chunk.get(7).unwrap_or(&0) as usize;
 
-        let (c2, r2) = b.div_rem(&20);
-        let (c1, r1) = (14 * a + c2).div_rem(&60);
-        let (c3, r3) = c.div_rem(&90);
-        let b3h = d >> 7;
-        let b3l = d & 0x7F;
+        let (c2, r2) = c_b.div_rem(&20);
+        let (c1, r1) = (14 * c_a + c2).div_rem(&60);
+        let (c3, r3) = c_c.div_rem(&90);
+        let b3h = c_d >> 7;
+        let b3l = c_d & 0x7F;
         let (c4, r4) = ((r3 << 1) + b3h).div_rem(&3);
-        let (c6, r6) = e.div_rem(&30);
+        let (c6, r6) = c_e.div_rem(&30);
         let (c5, r5) = (9 * b3l + c6).div_rem(&60);
-        let (c7, r7) = f.div_rem(&150);
-        let (c8a, r8a) = g.div_rem(&144);
+        let (c7, r7) = c_f.div_rem(&150);
+        let (c8a, r8a) = c_g.div_rem(&144);
         let (c8, r8) = ((r7 << 1) + c8a).div_rem(&5);
         let (c9, r9) = r8a.div_rem(&12);
-        let (c10, r10) = h.div_rem(&60);
+        let (c10, r10) = c_h.div_rem(&60);
 
         let encoded = [
             ENCODED_TO_UTF8_MAP[c1],
