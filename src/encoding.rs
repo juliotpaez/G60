@@ -70,12 +70,12 @@ pub fn encode_in_writer<T: Write>(content: &[u8], writer: &mut T) -> Result<usiz
 
 /// Computes `ceil(11 * content_length / 8)` faster using only integers.
 #[inline]
-fn compute_encoded_size(content_length: usize) -> usize {
+pub(crate) fn compute_encoded_size(content_length: usize) -> usize {
     (11 * content_length + 7) >> 3
 }
 
 #[inline]
-fn compute_chunk(chunk: &[u8]) -> [u8; 11] {
+pub(crate) fn compute_chunk(chunk: &[u8]) -> [u8; 11] {
     let c_a = chunk[0] as usize;
     let c_b = chunk[1] as usize;
     let c_c = chunk[2] as usize;
@@ -115,7 +115,7 @@ fn compute_chunk(chunk: &[u8]) -> [u8; 11] {
 }
 
 #[inline]
-fn compute_final_chunk(chunk: &[u8]) -> [u8; 11] {
+pub(crate) fn compute_final_chunk(chunk: &[u8]) -> [u8; 11] {
     let c_a = chunk[0] as usize;
     let c_b = *chunk.get(1).unwrap_or(&0) as usize;
     let c_c = *chunk.get(2).unwrap_or(&0) as usize;

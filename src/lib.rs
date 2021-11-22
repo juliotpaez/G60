@@ -38,11 +38,15 @@ use std::ops::RangeInclusive;
 pub use decoding::*;
 pub use encoding::*;
 pub use errors::*;
+#[cfg(feature = "random")]
+pub use random::*;
 
 mod constants;
 mod decoding;
 mod encoding;
 mod errors;
+#[cfg(feature = "random")]
+mod random;
 mod utils;
 
 static CHAR_RANGE_NUMBERS: RangeInclusive<u8> = b'0'..=b'9';
@@ -50,6 +54,10 @@ static CHAR_RANGE_LOWERCASE: RangeInclusive<u8> = b'a'..=b'z';
 static CHAR_RANGE_UPPERCASE: RangeInclusive<u8> = b'A'..=b'Z';
 
 /// Verifies `content` is a valid G60 encoded string.
+///
+/// # Errors
+/// An error will be arise in the following cases:
+/// - if `encoded` is not a valid G60 encoded string.
 pub fn verify(content: &str) -> Result<(), VerificationError> {
     let bytes = content.as_bytes();
 

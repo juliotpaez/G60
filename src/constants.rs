@@ -1,6 +1,6 @@
-pub static ENCODED_TO_UTF8_MAP: &[u8; 60] =
+pub(crate) static ENCODED_TO_UTF8_MAP: &[u8; 60] =
     b"0123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-pub static UTF8_TO_ENCODED_MAP: &[u8; 123] = &[
+pub(crate) static UTF8_TO_ENCODED_MAP: &[u8; 123] = &[
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0, 0, 0, 0, 0,
     0, 10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 19, 20, 21, 22, 0, 23, 24, 25, 26, 27, 28, 29, 30,

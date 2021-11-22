@@ -141,7 +141,7 @@ pub unsafe fn decode_in_writer_unchecked<T: Write>(
 // ----------------------------------------------------------------------------
 
 /// Computes `ceil(8 * encoded_length / 11)` faster using only integers.
-fn compute_decoded_size(encoded_length: usize) -> usize {
+pub(crate) fn compute_decoded_size(encoded_length: usize) -> usize {
     (encoded_length << 3) / 11
 }
 

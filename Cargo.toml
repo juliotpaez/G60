@@ -11,9 +11,17 @@ categories = ["encoding"]
 license = "MIT"
 edition = "2018"
 
+[features]
+random = ["rand"]
+
 [[bench]]
 name = "benchmarks"
 harness = false
+
+[dependencies.rand]
+version = "0.8.4"
+optional = true
+features = ["small_rng"]
 
 [dev-dependencies]
 criterion = "0.3.5"
