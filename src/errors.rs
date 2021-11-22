@@ -60,10 +60,6 @@ impl From<std::io::Error> for EncodingError {
 /// An error returned during the decoding process.
 #[derive(Debug, Eq, PartialEq)]
 pub enum DecodingError {
-    /// Error during verification of the input.
-    InputVerification(VerificationError),
-    /// The decoded bytes are not a valid UTF8 string.
-    InvalidUTF8String { bytes: Vec<u8> },
     /// The result buffer has not enough space to held the decoding result.
     NotEnoughSpaceInSlice { actual: usize, required: usize },
 }
@@ -106,11 +102,5 @@ impl std::error::Error for VerificationError {}
 impl From<VerificationError> for Error {
     fn from(v: VerificationError) -> Self {
         Self::Verification(v)
-    }
-}
-
-impl From<VerificationError> for DecodingError {
-    fn from(v: VerificationError) -> Self {
-        Self::InputVerification(v)
     }
 }

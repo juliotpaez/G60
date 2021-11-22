@@ -13,7 +13,7 @@ edition = "2018"
 
 [features]
 random = ["rand"]
-incorrect = []
+naive = []
 
 [[bench]]
 name = "benchmarks"

@@ -1,20 +1,67 @@
-use crate::{decode, encode, DecodingError};
+use crate::{decoding, encoding};
 
-/// Get the canonical form of an encoded string.
-/// Uses `Cow` to not allocate unless necessary.
-pub fn canonicalize(encoded: &str) -> Result<String, DecodingError> {
-    let decoded = decode(encoded)?;
-    Ok(encode(&decoded))
+/// This method assumes `encoded` is correct.
+pub fn canonicalize_in_place(encoded: &mut String) {
+    let bytes = unsafe { encoded.as_bytes_mut() };
+    let bytes_length = bytes.len();
+
+    // Complete groups.
+    for chunk_id in 0..(bytes_length / 11) {
+        let position = chunk_id * 11;
+        let chunk = &mut bytes[position..position + 11];
+        let decoded = decoding::compute_chunk(chunk);
+        let encoded = encoding::compute_chunk(&decoded);
+
+        bytes[position..(position + 11)].clone_from_slice(&encoded[position..(position + 11)]);
+    }
+
+    // Last incomplete group.
+    let last_group_length = bytes_length - (bytes_length / 11 * 11);
+    if last_group_length != 0 {
+        let chunk = &mut bytes[bytes_length - last_group_length..];
+        let decoded = decoding::compute_chunk(chunk);
+        let elements_to_write = decoding::compute_decoded_size(last_group_length);
+        let encoded = encoding::compute_chunk(&decoded[..elements_to_write]);
+
+        bytes[(bytes_length - last_group_length)..bytes_length]
+            .clone_from_slice(&encoded[(bytes_length - last_group_length)..bytes_length]);
+    }
 }
 
-/// Return whether a representation is canonical or not.
 pub fn is_canonical(encoded: &str) -> bool {
-    let canonical = match canonicalize(encoded) {
-        Ok(v) => v,
-        Err(_) => return false,
-    };
+    let bytes = encoded.as_bytes();
+    let bytes_length = bytes.len();
 
-    encoded == canonical
+    // Complete groups.
+    for chunk_id in 0..(bytes_length / 11) {
+        let position = chunk_id * 11;
+        let chunk = &bytes[position..position + 11];
+        let decoded = decoding::compute_chunk(chunk);
+        let encoded = encoding::compute_chunk(&decoded);
+
+        for p in position..position + 11 {
+            if bytes[p] != encoded[p] {
+                return false;
+            }
+        }
+    }
+
+    // Last incomplete group.
+    let last_group_length = bytes_length - (bytes_length / 11 * 11);
+    if last_group_length != 0 {
+        let chunk = &bytes[bytes_length - last_group_length..];
+        let decoded = decoding::compute_chunk(chunk);
+        let elements_to_write = decoding::compute_decoded_size(last_group_length);
+        let encoded = encoding::compute_chunk(&decoded[..elements_to_write]);
+
+        for p in bytes_length - last_group_length..bytes_length {
+            if bytes[p] != encoded[p] {
+                return false;
+            }
+        }
+    }
+
+    true
 }
 
 // ----------------------------------------------------------------------------
@@ -42,18 +89,18 @@ mod tests {
     fn test_canonical() {
         // Yes
         for encoded in ["010", "34564657567"] {
-            let result = canonicalize(encoded)
-                .unwrap_or_else(|_| panic!("Canonicalize must succeed: {}", encoded));
-            assert_eq!(result, encoded, "Incorrect yes value: {}", encoded)
+            let mut encoded_string = encoded.to_string();
+            canonicalize_in_place(&mut encoded_string);
+            assert_eq!(encoded_string, encoded, "Incorrect yes value: {}", encoded)
         }
 
         // No
-        let result =
-            canonicalize("001").unwrap_or_else(|_| panic!("Canonicalize must succeed: 001"));
-        assert_eq!(result, "000", "Incorrect yes value: 001");
+        let mut encoded_string = "001".to_string();
+        canonicalize_in_place(&mut encoded_string);
+        assert_eq!(encoded_string, "000", "Incorrect yes value: 001");
 
-        let result = canonicalize("0Co00000000")
-            .unwrap_or_else(|_| panic!("Canonicalize must succeed: 001"));
-        assert_eq!(result, "00000000000", "Incorrect yes value: 001")
+        let mut encoded_string = "0Co00000000".to_string();
+        canonicalize_in_place(&mut encoded_string);
+        assert_eq!(encoded_string, "00000000000", "Incorrect yes value: 001")
     }
 }

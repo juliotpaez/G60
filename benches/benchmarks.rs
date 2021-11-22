@@ -1,7 +1,7 @@
 use criterion::criterion_group;
 use criterion::criterion_main;
 use criterion::{black_box, Bencher, BenchmarkId, Criterion, Throughput};
-use g60::{decode, decode_in_slice, decode_in_slice_unchecked, encode, encode_in_slice, verify};
+use g60::{encode_in_slice, G60String};
 use rand::{Rng, SeedableRng};
 
 // ----------------------------------------------------------------------------
@@ -13,7 +13,7 @@ fn do_encode_bench(b: &mut Bencher, &size: &usize) {
     fill(&mut input);
 
     b.iter(|| {
-        let encoded = encode(&input);
+        let encoded = G60String::encode(&input);
         black_box(&encoded);
     });
 }
@@ -36,10 +36,10 @@ fn do_decode_bench(b: &mut Bencher, &size: &usize) {
     let mut input: Vec<u8> = Vec::with_capacity(size);
     fill(&mut input);
 
-    let encoded = encode(&input);
+    let encoded = G60String::encode(&input);
 
     b.iter(|| {
-        let original = decode(&encoded).unwrap();
+        let original = encoded.decode();
         black_box(&original);
     });
 }
@@ -48,30 +48,13 @@ fn do_decode_in_slice_bench(b: &mut Bencher, &size: &usize) {
     let mut input: Vec<u8> = Vec::with_capacity(size);
     fill(&mut input);
 
-    let encoded = encode(&input);
+    let encoded = G60String::encode(&input);
 
     let mut buffer = Vec::new();
     buffer.resize(size, 0);
 
     b.iter(|| {
-        decode_in_slice(&encoded, &mut buffer).unwrap();
-        black_box(&buffer);
-    });
-}
-
-fn do_decode_in_slice_unchecked_bench(b: &mut Bencher, &size: &usize) {
-    let mut input: Vec<u8> = Vec::with_capacity(size);
-    fill(&mut input);
-
-    let encoded = encode(&input);
-
-    let mut buffer = Vec::new();
-    buffer.resize(size, 0);
-
-    b.iter(|| {
-        unsafe {
-            decode_in_slice_unchecked(&encoded, &mut buffer).unwrap();
-        }
+        encoded.decode_in_slice(&mut buffer).unwrap();
         black_box(&buffer);
     });
 }
@@ -80,10 +63,10 @@ fn do_verify_bench(b: &mut Bencher, &size: &usize) {
     let mut input: Vec<u8> = Vec::with_capacity(size);
     fill(&mut input);
 
-    let encoded = encode(&input);
+    let encoded = G60String::encode(&input);
 
     b.iter(|| {
-        let result = verify(&encoded);
+        let result = G60String::verify(encoded.as_str());
         black_box(&result);
     });
 }
@@ -145,11 +128,6 @@ fn decode_benchmarks(c: &mut Criterion, label: &str, byte_sizes: &[usize]) {
                 BenchmarkId::new("decode_in_slice", size),
                 size,
                 do_decode_in_slice_bench,
-            )
-            .bench_with_input(
-                BenchmarkId::new("decode_in_slice_unchecked", size),
-                size,
-                do_decode_in_slice_unchecked_bench,
             );
     }
 

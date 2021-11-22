@@ -54,7 +54,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::incorrect::verify_incorrect;
+    use crate::naive::NaiveG60String;
 
     #[test]
     fn test_exactly_random_valid() {
@@ -65,7 +65,7 @@ mod tests {
                 assert_eq!(random.len(), length, "Length is incorrect");
 
                 assert!(
-                    !verify_incorrect(random.as_str()).expect("Verification fails"),
+                    !NaiveG60String::verify(random.as_str()).expect("Verification fails"),
                     "The verification is incorrect"
                 );
             }
@@ -81,7 +81,7 @@ mod tests {
                 assert_eq!(random.len(), length, "Length is incorrect");
 
                 assert!(
-                    verify_incorrect(random.as_str()).expect("Verification fails"),
+                    NaiveG60String::verify(random.as_str()).expect("Verification fails"),
                     "The verification is incorrect"
                 );
             }

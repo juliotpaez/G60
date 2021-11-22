@@ -1,18 +1,7 @@
-#[cfg(feature = "random")]
-pub use random::*;
+use crate::errors::VerificationError;
+use crate::verification::{CHAR_RANGE_LOWERCASE, CHAR_RANGE_NUMBERS, CHAR_RANGE_UPPERCASE};
 
-#[cfg(feature = "random")]
-mod random;
-
-use crate::{VerificationError, CHAR_RANGE_LOWERCASE, CHAR_RANGE_NUMBERS, CHAR_RANGE_UPPERCASE};
-
-/// Verifies `content` is an incorrect G60 encoded string, i.e. characters are correct
-/// but the length is invalid.
-///
-/// # Errors
-/// An error will be arise in the following cases:
-/// - if `content` contains an invalid G60 character.
-pub fn verify_incorrect(content: &str) -> Result<bool, VerificationError> {
+pub fn verify(content: &str) -> Result<bool, VerificationError> {
     let bytes = content.as_bytes();
 
     // Check chars.
@@ -48,15 +37,15 @@ mod tests {
             "cdefghijklmnopqrst",
             "uvwxyz0123456789AB",
         ] {
-            let result = verify_incorrect(test)
-                .unwrap_or_else(|_| panic!("Verify must succeed for '{}'", test));
+            let result =
+                verify(test).unwrap_or_else(|_| panic!("Verify must succeed for '{}'", test));
             assert!(!result, "Incorrect for '{}'", test);
         }
 
         // Incorrect
         for test in ["1", "1234", "12345678"] {
-            let result = verify_incorrect(test)
-                .unwrap_or_else(|_| panic!("Verify must succeed for '{}'", test));
+            let result =
+                verify(test).unwrap_or_else(|_| panic!("Verify must succeed for '{}'", test));
             assert!(result, "Incorrect for '{}'", test);
         }
     }
@@ -64,7 +53,7 @@ mod tests {
     #[test]
     fn test_verify_invalid_characters() {
         let test = "Hello, world!";
-        let error = verify_incorrect(test).expect_err("The verification must fail");
+        let error = verify(test).expect_err("The verification must fail");
 
         assert_eq!(
             error,
@@ -79,7 +68,7 @@ mod tests {
         // --------------------------------------------------------------------
 
         let test = "THIS IS A TEST";
-        let error = verify_incorrect(test).expect_err("The verification must fail");
+        let error = verify(test).expect_err("The verification must fail");
 
         assert_eq!(
             error,
@@ -94,7 +83,7 @@ mod tests {
         // --------------------------------------------------------------------
 
         let test = "TESTONTEST";
-        let error = verify_incorrect(test).expect_err("The verification must fail");
+        let error = verify(test).expect_err("The verification must fail");
 
         assert_eq!(
             error,

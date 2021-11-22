@@ -1,26 +1,23 @@
 use crate::{decoding, encoding};
-
-use rand::{
-    rngs::{SmallRng, StdRng},
-    Rng, SeedableRng,
-};
+use rand::rngs::{SmallRng, StdRng};
+use rand::{Rng, SeedableRng};
 
 /// Generates a random G60 string of `bytes` length using a non-deterministic PRNG.
-pub fn random(bytes: usize) -> String {
+pub fn random_bytes(bytes: usize) -> String {
     let mut rng = StdRng::from_entropy();
 
-    custom_random(bytes, |v| rng.fill(v))
+    custom_random_bytes(bytes, |v| rng.fill(v))
 }
 
 /// Generates a random G60 string of `bytes` length using a basic but faster random generator.
-pub fn unsecure_random(bytes: usize) -> String {
+pub fn unsecure_random_bytes(bytes: usize) -> String {
     let mut rng = SmallRng::from_entropy();
 
-    custom_random(bytes, |v| rng.fill(v))
+    custom_random_bytes(bytes, |v| rng.fill(v))
 }
 
 /// Generates a random G60 string of `bytes` length using a custom random generator.
-pub fn custom_random<F>(bytes: usize, mut rng: F) -> String
+pub fn custom_random_bytes<F>(bytes: usize, mut rng: F) -> String
 where
     F: FnMut(&mut [u8]),
 {
@@ -43,7 +40,7 @@ where
         rng(&mut chunk);
 
         let chunk = &chunk[11 - last_group_length..];
-        let encoded = encoding::compute_final_chunk(chunk);
+        let encoded = encoding::compute_chunk(chunk);
         let elements_to_write = encoding::compute_encoded_size(last_group_length);
 
         result.extend_from_slice(&encoded[..elements_to_write]);
@@ -62,7 +59,7 @@ pub fn random_str(mut length: usize) -> String {
 
     let bytes = decoding::compute_decoded_size(length);
 
-    random(bytes)
+    random_bytes(bytes)
 }
 
 /// Generates a random G60 string of at most `length` characters using a basic but faster random generator.
@@ -75,7 +72,7 @@ pub fn unsecure_random_str(mut length: usize) -> String {
 
     let bytes = decoding::compute_decoded_size(length);
 
-    unsecure_random(bytes)
+    unsecure_random_bytes(bytes)
 }
 
 /// Generates a random G60 string of at most `length` characters using a custom random generator.
@@ -100,18 +97,19 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{decode, encode, verify};
+    use crate::encoding::encode;
+    use crate::verification::verify;
 
     use super::*;
 
     #[test]
     fn test_random() {
         for bytes in 0usize..100 {
-            let random = random(bytes);
+            let random = random_bytes(bytes);
 
             verify(random.as_str()).expect("Verification fails");
 
-            let decoded = decode(random.as_str()).expect("Decoding fails");
+            let decoded = unsafe { decoding::decode_unchecked(random.as_str()) };
 
             assert_eq!(decoded.len(), bytes, "Length is incorrect");
 
@@ -131,7 +129,7 @@ mod tests {
 
                 verify(random.as_str()).expect("Verification fails");
 
-                let decoded = decode(random.as_str()).expect("Decoding fails");
+                let decoded = unsafe { decoding::decode_unchecked(random.as_str()) };
                 let encoded = encode(&decoded);
 
                 assert_eq!(encoded, random, "Encoding and random are different")
@@ -149,7 +147,7 @@ mod tests {
 
                 verify(random.as_str()).expect("Verification fails");
 
-                let decoded = decode(random.as_str()).expect("Decoding fails");
+                let decoded = unsafe { decoding::decode_unchecked(random.as_str()) };
                 let encoded = encode(&decoded);
 
                 assert_eq!(encoded, random, "Encoding and random are different")
