@@ -35,12 +35,14 @@
 
 use std::ops::RangeInclusive;
 
+pub use canonical::*;
 pub use decoding::*;
 pub use encoding::*;
 pub use errors::*;
 #[cfg(feature = "random")]
 pub use random::*;
 
+mod canonical;
 mod constants;
 mod decoding;
 mod encoding;
