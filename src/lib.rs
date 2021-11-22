@@ -45,6 +45,8 @@ mod constants;
 mod decoding;
 mod encoding;
 mod errors;
+#[cfg(feature = "incorrect")]
+pub mod incorrect;
 #[cfg(feature = "random")]
 mod random;
 mod utils;
@@ -57,7 +59,7 @@ static CHAR_RANGE_UPPERCASE: RangeInclusive<u8> = b'A'..=b'Z';
 ///
 /// # Errors
 /// An error will be arise in the following cases:
-/// - if `encoded` is not a valid G60 encoded string.
+/// - if `content` is not a valid G60 encoded string.
 pub fn verify(content: &str) -> Result<(), VerificationError> {
     let bytes = content.as_bytes();
 
@@ -91,23 +93,15 @@ mod tests {
 
     #[test]
     fn test_verify_ok() {
-        let test = "0123456789ABCDEFGH";
-        assert!(verify(test).is_ok(), "Incorrect for '{}'", test);
-
-        // --------------------------------------------------------------------
-
-        let test = "JKLMNPQRSTUVWXYZab";
-        assert!(verify(test).is_ok(), "Incorrect for '{}'", test);
-
-        // --------------------------------------------------------------------
-
-        let test = "cdefghijklmnopqrst";
-        assert!(verify(test).is_ok(), "Incorrect for '{}'", test);
-
-        // --------------------------------------------------------------------
-
-        let test = "uvwxyz0123456789AB";
-        assert!(verify(test).is_ok(), "Incorrect for '{}'", test);
+        // Correct
+        for test in [
+            "0123456789ABCDEFGH",
+            "JKLMNPQRSTUVWXYZab",
+            "cdefghijklmnopqrst",
+            "uvwxyz0123456789AB",
+        ] {
+            verify(test).unwrap_or_else(|_| panic!("Verify must succeed for '{}'", test));
+        }
     }
 
     #[test]
