@@ -9,7 +9,7 @@ readme = "README.md"
 keywords = ["g60", "utf8", "encode", "decode"]
 categories = ["encoding"]
 license = "MIT"
-edition = "2018"
+edition = "2021"
 
 [features]
 random = ["rand"]
