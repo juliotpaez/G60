@@ -1,6 +1,6 @@
 [package]
 name = "g60"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Julio Treviño <julio.tpaez@gmail.com>"]
 description = "encodes and decodes G60 as bytes or utf8"
 repository = "https://github.com/juliotpaez/rust-g60"
@@ -11,19 +11,10 @@ categories = ["encoding"]
 license = "MIT"
 edition = "2021"
 
-[features]
-random = ["rand"]
-naive = []
-
 [[bench]]
 name = "benchmarks"
 harness = false
 
-[dependencies.rand]
-version = "0.8.4"
-optional = true
-features = ["small_rng"]
-
 [dev-dependencies]
-criterion = "0.3.5"
-rand = "0.8.4"
+criterion = { version = "0.5.1", features = ["html_reports", "plotters"] }
+rand = "0.8.5"
