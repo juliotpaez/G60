@@ -3,19 +3,23 @@ use std::io::Write;
 use crate::constants::UTF8_TO_ENCODED_MAP;
 use crate::errors::DecodingError;
 use crate::utils::div_rem;
+use crate::verify;
 
-pub unsafe fn decode_unchecked(encoded: &str) -> Vec<u8> {
+/// Decodes a G60 encoded string.
+pub fn decode(encoded: &str) -> Result<Vec<u8>, DecodingError> {
     let mut slice = vec![0; compute_decoded_size(encoded.len())];
 
-    decode_in_slice_unchecked(encoded, &mut slice).unwrap();
+    decode_in_slice(encoded, &mut slice)?;
 
-    slice
+    Ok(slice)
 }
 
-pub unsafe fn decode_in_slice_unchecked(
-    encoded: &str,
-    slice: &mut [u8],
-) -> Result<usize, DecodingError> {
+/// Decodes a G60 encoded string.
+/// The result is placed into `slice` and returns the number of elements written.
+///
+/// # Errors
+/// An error will be thrown if `slice` does not have enough space to store the decoded string.
+pub fn decode_in_slice(encoded: &str, slice: &mut [u8]) -> Result<usize, DecodingError> {
     let bytes = encoded.as_bytes();
     let required_slice_size = compute_decoded_size(bytes.len());
 
@@ -26,13 +30,17 @@ pub unsafe fn decode_in_slice_unchecked(
         });
     }
 
-    decode_in_writer_unchecked(encoded, &mut std::io::Cursor::new(slice))
+    decode_in_writer(encoded, &mut std::io::Cursor::new(slice))
 }
 
-pub unsafe fn decode_in_writer_unchecked<T: Write>(
-    encoded: &str,
-    writer: &mut T,
-) -> Result<usize, DecodingError> {
+/// Decodes a G60 encoded string.
+/// The result is writen in `writer`.
+///
+/// # Errors
+/// An error will be thrown if the writing process fails.
+pub fn decode_in_writer<T: Write>(encoded: &str, writer: &mut T) -> Result<usize, DecodingError> {
+    verify(encoded).map_err(DecodingError::Verification)?;
+
     let bytes = encoded.as_bytes();
     let required_slice_size = compute_decoded_size(bytes.len());
 
@@ -159,8 +167,8 @@ mod tests {
     fn test_decode_in_writer() {
         let test = "Gt4CGFiHehzRzjCF16";
         let mut result_vector = Vec::new();
-        let decoded_chars = unsafe { decode_in_writer_unchecked(test, &mut result_vector) }
-            .expect("The decoding must succeed");
+        let decoded_chars =
+            decode_in_writer(test, &mut result_vector).expect("The decoding must succeed");
 
         let result = b"Hello, world!".to_vec();
 
@@ -173,8 +181,8 @@ mod tests {
     fn test_decode_in_slice_exact_slice() {
         let test = "Gt4CGFiHehzRzjCF16";
         let mut result_slice = vec![0; 13];
-        let decoded_chars = unsafe { decode_in_slice_unchecked(test, &mut result_slice) }
-            .expect("The decoding must succeed");
+        let decoded_chars =
+            decode_in_slice(test, &mut result_slice).expect("The decoding must succeed");
 
         let result = b"Hello, world!".to_vec();
 
@@ -186,8 +194,8 @@ mod tests {
     fn test_decode_in_slice_bigger_slice() {
         let test = "Gt4CGFiHehzRzjCF16";
         let mut result_slice = vec![0; 15];
-        let decoded_chars = unsafe { decode_in_slice_unchecked(test, &mut result_slice) }
-            .expect("The decoding must succeed");
+        let decoded_chars =
+            decode_in_slice(test, &mut result_slice).expect("The decoding must succeed");
 
         let mut result = b"Hello, world!".to_vec();
         result.push(0);
@@ -201,8 +209,8 @@ mod tests {
     fn test_decode_in_slice_shorter_slice() {
         let test = "Gt4CGFiHehzRzjCF16";
         let mut result_slice = vec![0; 10];
-        let error = unsafe { decode_in_slice_unchecked(test, &mut result_slice) }
-            .expect_err("The decoding cannot succeed");
+        let error =
+            decode_in_slice(test, &mut result_slice).expect_err("The decoding cannot succeed");
 
         assert_eq!(
             error,

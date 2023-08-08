@@ -60,6 +60,9 @@ impl From<std::io::Error> for EncodingError {
 /// An error returned during the decoding process.
 #[derive(Debug, Eq, PartialEq)]
 pub enum DecodingError {
+    /// A verification error over the encoded string.
+    Verification(VerificationError),
+
     /// The result buffer has not enough space to held the decoding result.
     NotEnoughSpaceInSlice { actual: usize, required: usize },
 }

@@ -1,8 +1,10 @@
+use std::io::Write;
+
 use crate::constants::ENCODED_TO_UTF8_MAP;
 use crate::errors::EncodingError;
 use crate::utils::div_rem;
-use std::io::Write;
 
+/// Encodes a list of bytes into a G60 encoding format.
 pub fn encode(content: &[u8]) -> String {
     let mut slice = Vec::with_capacity(compute_encoded_size(content.len()));
 
@@ -15,7 +17,7 @@ pub fn encode(content: &[u8]) -> String {
 /// The result is placed into `slice` and returns the number of elements written.
 ///
 /// # Errors
-/// An error will be thrown if `slice` does not have at least `ceil(11 * content.len() / 8)` of size.
+/// An error will be thrown if `slice` does not have enough space to store the encoded string.
 pub fn encode_in_slice(content: &[u8], slice: &mut [u8]) -> Result<usize, EncodingError> {
     let required_slice_size = compute_encoded_size(content.len());
 

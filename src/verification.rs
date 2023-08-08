@@ -1,5 +1,6 @@
-use crate::errors::VerificationError;
 use std::ops::RangeInclusive;
+
+use crate::errors::VerificationError;
 
 pub(crate) static CHAR_RANGE_NUMBERS: RangeInclusive<u8> = b'0'..=b'9';
 pub(crate) static CHAR_RANGE_LOWERCASE: RangeInclusive<u8> = b'a'..=b'z';
