@@ -32,7 +32,7 @@ pub fn encode_in_slice(content: &[u8], slice: &mut [u8]) -> Result<usize, Encodi
 }
 
 /// Encodes a list of bytes into a G60 encoding format.
-/// The result is writen in `writer`.
+/// The result is written in `writer`.
 ///
 /// # Errors
 /// An error will be thrown if the writing process fails.
@@ -188,5 +188,76 @@ mod tests {
             "Incorrect for '{}'",
             test
         );
+    }
+
+    /// This test checks that the encoding is monotonic. This means that the encoding of a number
+    /// is always greater than the encoding of the previous number.
+    #[test]
+    fn test_monotonic_encoding() {
+        // One byte.
+        {
+            let mut prev = 0;
+
+            for current in 1..=255 {
+                let prev_encoded = encode(&[prev]);
+                let current_encoded = encode(&[current]);
+
+                assert!(
+                    prev_encoded < current_encoded,
+                    "Monotonicity failed for 1-byte {}",
+                    current
+                );
+                prev = current;
+            }
+        }
+
+        // Two bytes.
+        {
+            let mut prev = 0;
+
+            for current in 1..=255 {
+                for prev_second in 0..=255 {
+                    for current_second in 0..=255 {
+                        let prev_encoded = encode(&[prev, prev_second]);
+                        let current_encoded = encode(&[current, current_second]);
+
+                        assert!(
+                            prev_encoded < current_encoded,
+                            "Monotonicity failed for 2-bytes {}: Second Prev: {}, Second Current: {}",
+                            current,
+                            prev_second,
+                            current_second
+                        );
+                    }
+                }
+
+                prev = current;
+            }
+        }
+
+        // Nine bytes. (second chunk)
+        {
+            let mut prev = 0;
+
+            for current in 1..=255 {
+                for prev_second in 0..=255 {
+                    for current_second in 0..=255 {
+                        let prev_encoded = encode(&[prev, 0, 0, 0, 0, 0, 0, 0, prev_second]);
+                        let current_encoded =
+                            encode(&[current, 0, 0, 0, 0, 0, 0, 0, current_second]);
+
+                        assert!(
+                            prev_encoded < current_encoded,
+                            "Monotonicity failed for 9-bytes {}: Second Prev: {}, Second Current: {}",
+                            current,
+                            prev_second,
+                            current_second
+                        );
+                    }
+                }
+
+                prev = current;
+            }
+        }
     }
 }

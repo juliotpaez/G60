@@ -34,7 +34,7 @@ pub fn decode_in_slice(encoded: &str, slice: &mut [u8]) -> Result<usize, Decodin
 }
 
 /// Decodes a G60 encoded string.
-/// The result is writen in `writer`.
+/// The result is written in `writer`.
 ///
 /// # Errors
 /// An error will be thrown if the writing process fails.
