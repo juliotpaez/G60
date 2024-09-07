@@ -1,6 +1,6 @@
 [package]
 name = "g60"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Julio Treviño <julio.tpaez@gmail.com>"]
 description = "encodes and decodes G60 as bytes or utf8"
 repository = "https://github.com/juliotpaez/rust-g60"
