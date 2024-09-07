@@ -75,6 +75,12 @@ impl Display for DecodingError {
 
 impl std::error::Error for DecodingError {}
 
+impl From<VerificationError> for DecodingError {
+    fn from(v: VerificationError) -> Self {
+        Self::Verification(v)
+    }
+}
+
 impl From<DecodingError> for Error {
     fn from(v: DecodingError) -> Self {
         Self::Decoding(v)
@@ -92,6 +98,8 @@ pub enum VerificationError {
     InvalidLength,
     /// Invalid byte in the encoded string.
     InvalidByte { index: usize, byte: u8 },
+    /// The encoded string is not canonical.
+    NotCanonical,
 }
 
 impl Display for VerificationError {

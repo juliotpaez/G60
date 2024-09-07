@@ -64,7 +64,7 @@ pub fn encode_in_writer<T: Write>(content: &[u8], writer: &mut T) -> Result<usiz
 // ----------------------------------------------------------------------------
 
 /// Computes `ceil(11 * content_length / 8)` faster using only integers.
-#[inline]
+#[inline(always)]
 pub(crate) fn compute_encoded_size(content_length: usize) -> usize {
     (11 * content_length + 7) >> 3
 }

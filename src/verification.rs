@@ -1,33 +1,36 @@
-use std::ops::RangeInclusive;
-
+use crate::decoding::{compute_chunk, compute_decoded_size};
 use crate::errors::VerificationError;
-
-pub(crate) static CHAR_RANGE_NUMBERS: RangeInclusive<u8> = b'0'..=b'9';
-pub(crate) static CHAR_RANGE_LOWERCASE: RangeInclusive<u8> = b'a'..=b'z';
-pub(crate) static CHAR_RANGE_UPPERCASE: RangeInclusive<u8> = b'A'..=b'Z';
 
 /// Verifies `content` is a valid G60 encoded string.
 ///
 /// # Errors
 /// An error will be thrown in the following cases:
-/// - if `content` is not a valid G60 encoded string.
-pub fn verify(content: &str) -> Result<(), VerificationError> {
-    let bytes = content.as_bytes();
+/// - if `encoded` is not a valid G60 encoded string.
+/// - if `encoded` is not canonical.
+pub fn verify(encoded: &str) -> Result<(), VerificationError> {
+    let bytes = encoded.as_bytes();
 
     // Check length.
-    let remaining_bytes = bytes.len() - bytes.len() / 11 * 11;
-    if let 1 | 4 | 8 = remaining_bytes {
+    let last_group_length = bytes.len() - bytes.len() / 11 * 11;
+    if let 1 | 4 | 8 = last_group_length {
         return Err(VerificationError::InvalidLength);
     }
 
-    // Check chars.
-    for (index, c) in bytes.iter().enumerate() {
-        if CHAR_RANGE_UPPERCASE.contains(c) {
-            if let b'O' | b'I' = *c {
-                return Err(VerificationError::InvalidByte { index, byte: *c });
-            }
-        } else if !CHAR_RANGE_NUMBERS.contains(c) && !CHAR_RANGE_LOWERCASE.contains(c) {
-            return Err(VerificationError::InvalidByte { index, byte: *c });
+    // Complete groups.
+    let mut chunk_index = 0;
+    for chunk in bytes.chunks_exact(11) {
+        compute_chunk(chunk_index, chunk)?;
+        chunk_index += 11;
+    }
+
+    // Last incomplete group.
+    if last_group_length != 0 {
+        let chunk = &bytes[bytes.len() - last_group_length..];
+        let decoded = compute_chunk(chunk_index, chunk)?;
+        let elements_to_write = compute_decoded_size(last_group_length);
+
+        if decoded[elements_to_write..].iter().any(|v| *v != 0) {
+            return Err(VerificationError::NotCanonical);
         }
     }
 
@@ -41,17 +44,16 @@ pub fn verify(content: &str) -> Result<(), VerificationError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::encode;
 
     #[test]
     fn test_verify_ok() {
-        // Correct
-        for test in [
-            "0123456789ABCDEFGH",
-            "JKLMNPQRSTUVWXYZab",
-            "cdefghijklmnopqrst",
-            "uvwxyz0123456789AB",
-        ] {
-            verify(test).unwrap_or_else(|_| panic!("Verify must succeed for '{}'", test));
+        for length in 0..16 {
+            for byte in 0..=255 {
+                let bytes = vec![byte; length];
+                let encoded = encode(&bytes);
+                verify(&encoded).expect("The verification must succeed");
+            }
         }
     }
 
@@ -136,5 +138,17 @@ mod tests {
             "Incorrect for '{}'",
             test
         );
+    }
+
+    #[test]
+    fn test_not_canonical() {
+        for i in ["0f", "2F", "5y", "BU", "Gv", "Nr", "Xd"] {
+            assert_eq!(
+                verify(i),
+                Err(VerificationError::NotCanonical),
+                "Incorrect for '{}'",
+                i
+            );
+        }
     }
 }
