@@ -1,9 +1,9 @@
 use criterion::criterion_group;
 use criterion::criterion_main;
-use criterion::{black_box, Bencher, BenchmarkId, Criterion, Throughput};
-use rand::{Rng, SeedableRng};
-
+use criterion::{Bencher, BenchmarkId, Criterion, Throughput};
 use g60::encode_in_slice;
+use rand::rngs::StdRng;
+use rand::RngExt;
 
 // ----------------------------------------------------------------------------
 // BENCHES --------------------------------------------------------------------
@@ -15,7 +15,7 @@ fn do_encode_bench(b: &mut Bencher, &size: &usize) {
 
     b.iter(|| {
         let encoded = g60::encode(&input);
-        black_box(&encoded);
+        std::hint::black_box(&encoded);
     });
 }
 
@@ -29,7 +29,7 @@ fn do_encode_in_slice_bench(b: &mut Bencher, &size: &usize) {
 
     b.iter(|| {
         let result = encode_in_slice(&input, &mut buffer);
-        black_box(&result);
+        std::hint::black_box(&result);
     });
 }
 
@@ -41,7 +41,7 @@ fn do_decode_bench(b: &mut Bencher, &size: &usize) {
 
     b.iter(|| {
         let original = g60::decode(encoded.as_str());
-        black_box(&original);
+        std::hint::black_box(&original);
     });
 }
 
@@ -56,7 +56,7 @@ fn do_decode_in_slice_bench(b: &mut Bencher, &size: &usize) {
 
     b.iter(|| {
         g60::decode_in_slice(encoded.as_str(), &mut buffer).unwrap();
-        black_box(&buffer);
+        std::hint::black_box(&buffer);
     });
 }
 
@@ -68,7 +68,7 @@ fn do_verify_bench(b: &mut Bencher, &size: &usize) {
 
     b.iter(|| {
         let result = g60::verify(encoded.as_str());
-        black_box(&result);
+        std::hint::black_box(&result);
     });
 }
 
@@ -80,9 +80,9 @@ fn fill(vector: &mut Vec<u8>) {
     let capacity = vector.capacity();
 
     // weak randomness is plenty; we just want to not be completely friendly to the branch predictor
-    let mut random = rand::rngs::StdRng::from_entropy();
+    let mut random: StdRng = rand::make_rng();
     while vector.len() < capacity {
-        vector.push(random.gen::<u8>());
+        vector.push(random.random::<u8>());
     }
 }
 
