@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use crate::constants::UTF8_TO_ENCODED_MAP;
+use crate::constants::CHAR_TO_G60;
 use crate::errors::{DecodingError, VerificationError};
 use crate::utils::div_rem;
 
@@ -54,7 +54,7 @@ pub fn decode_in_writer<T: Write>(encoded: &str, writer: &mut T) -> Result<usize
     for chunk in bytes.chunks_exact(11) {
         let decoded = compute_chunk(chunk_index, chunk)?;
 
-        writer.write_all(&decoded).unwrap();
+        writer.write_all(&decoded)?;
         chunk_index += 11;
     }
 
@@ -64,11 +64,9 @@ pub fn decode_in_writer<T: Write>(encoded: &str, writer: &mut T) -> Result<usize
         let decoded = compute_chunk(chunk_index, chunk)?;
         let elements_to_write = compute_decoded_size(last_group_length);
 
-        if decoded[elements_to_write..].iter().any(|v| *v != 0) {
-            return Err(DecodingError::Verification(VerificationError::NotCanonical));
-        }
+        check_canonical_tail(&decoded, elements_to_write)?;
 
-        writer.write_all(&decoded[..elements_to_write]).unwrap();
+        writer.write_all(&decoded[..elements_to_write])?;
     }
 
     Ok(required_slice_size)
@@ -78,28 +76,42 @@ pub fn decode_in_writer<T: Write>(encoded: &str, writer: &mut T) -> Result<usize
 // AUX METHODS ----------------------------------------------------------------
 // ----------------------------------------------------------------------------
 
-/// Computes `ceil(8 * encoded_length / 11)` faster using only integers.
+/// Computes `floor(8 * encoded_length / 11)` faster using only integers.
 #[inline(always)]
 pub(crate) fn compute_decoded_size(encoded_length: usize) -> usize {
     (encoded_length << 3) / 11
 }
 
+/// Returns an error if the padding bytes of a partial decoded chunk are non-zero,
+/// which would indicate the encoded string is not the canonical representation.
 #[inline]
-pub(crate) fn map_utf8_to_encoded(
+pub(crate) fn check_canonical_tail(
+    decoded: &[u8; 8],
+    elements_to_write: usize,
+) -> Result<(), VerificationError> {
+    if decoded[elements_to_write..].iter().any(|v| *v != 0) {
+        Err(VerificationError::NotCanonical)
+    } else {
+        Ok(())
+    }
+}
+
+#[inline]
+pub(crate) fn map_char_to_g60_index(
     chunk_index: usize,
     index: usize,
     chunk: &[u8],
 ) -> Result<usize, VerificationError> {
     match chunk.get(index) {
         Some(v) => {
-            let encoded = *UTF8_TO_ENCODED_MAP.get(*v as usize).unwrap_or(&255) as usize;
-            if encoded == 255 {
+            let value = *CHAR_TO_G60.get(*v as usize).unwrap_or(&255) as usize;
+            if value == 255 {
                 Err(VerificationError::InvalidByte {
                     index: chunk_index + index,
                     byte: *v,
                 })
             } else {
-                Ok(encoded)
+                Ok(value)
             }
         }
         None => Ok(0),
@@ -111,17 +123,17 @@ pub(crate) fn compute_chunk(
     chunk_index: usize,
     chunk: &[u8],
 ) -> Result<[u8; 8], VerificationError> {
-    let c0 = map_utf8_to_encoded(chunk_index, 0, chunk)?;
-    let c1 = map_utf8_to_encoded(chunk_index, 1, chunk)?;
-    let c2 = map_utf8_to_encoded(chunk_index, 2, chunk)?;
-    let c3 = map_utf8_to_encoded(chunk_index, 3, chunk)?;
-    let c4 = map_utf8_to_encoded(chunk_index, 4, chunk)?;
-    let c5 = map_utf8_to_encoded(chunk_index, 5, chunk)?;
-    let c6 = map_utf8_to_encoded(chunk_index, 6, chunk)?;
-    let c7 = map_utf8_to_encoded(chunk_index, 7, chunk)?;
-    let c8 = map_utf8_to_encoded(chunk_index, 8, chunk)?;
-    let c9 = map_utf8_to_encoded(chunk_index, 9, chunk)?;
-    let c10 = map_utf8_to_encoded(chunk_index, 10, chunk)?;
+    let c0 = map_char_to_g60_index(chunk_index, 0, chunk)?;
+    let c1 = map_char_to_g60_index(chunk_index, 1, chunk)?;
+    let c2 = map_char_to_g60_index(chunk_index, 2, chunk)?;
+    let c3 = map_char_to_g60_index(chunk_index, 3, chunk)?;
+    let c4 = map_char_to_g60_index(chunk_index, 4, chunk)?;
+    let c5 = map_char_to_g60_index(chunk_index, 5, chunk)?;
+    let c6 = map_char_to_g60_index(chunk_index, 6, chunk)?;
+    let c7 = map_char_to_g60_index(chunk_index, 7, chunk)?;
+    let c8 = map_char_to_g60_index(chunk_index, 8, chunk)?;
+    let c9 = map_char_to_g60_index(chunk_index, 9, chunk)?;
+    let c10 = map_char_to_g60_index(chunk_index, 10, chunk)?;
 
     let (b1, r1) = div_rem(60 * c0 + c1, 14);
     let (b2, r2) = div_rem(c2, 3);
@@ -154,7 +166,7 @@ pub(crate) fn compute_chunk(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::constants::ENCODED_TO_UTF8_MAP;
+    use crate::constants::G60_TO_CHAR;
     use crate::encode;
     use std::collections::HashSet;
 
@@ -250,8 +262,8 @@ mod tests {
     fn test_do_not_decode_non_canonical_values() {
         let mut ok_values = HashSet::new();
 
-        for i in ENCODED_TO_UTF8_MAP {
-            for j in ENCODED_TO_UTF8_MAP {
+        for i in G60_TO_CHAR {
+            for j in G60_TO_CHAR {
                 let encoded = format!("{}{}", *i as char, *j as char);
                 let decoded = match decode(&encoded) {
                     Ok(v) => v,

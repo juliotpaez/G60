@@ -29,3 +29,27 @@ mod encoding;
 pub mod errors;
 mod utils;
 mod verification;
+
+// ----------------------------------------------------------------------------
+// TESTS ----------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn roundtrip(bytes: Vec<u8>) {
+            let encoded = crate::encode(&bytes);
+            let decoded = crate::decode(&encoded).unwrap();
+            prop_assert_eq!(bytes, decoded);
+        }
+
+        #[test]
+        fn valid_encoding_verifies(bytes: Vec<u8>) {
+            let encoded = crate::encode(&bytes);
+            prop_assert!(crate::verify(&encoded).is_ok());
+        }
+    }
+}

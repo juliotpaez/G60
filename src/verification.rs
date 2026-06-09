@@ -1,4 +1,4 @@
-use crate::decoding::{compute_chunk, compute_decoded_size};
+use crate::decoding::{check_canonical_tail, compute_chunk, compute_decoded_size};
 use crate::errors::VerificationError;
 
 /// Verifies `content` is a valid G60 encoded string.
@@ -29,9 +29,7 @@ pub fn verify(encoded: &str) -> Result<(), VerificationError> {
         let decoded = compute_chunk(chunk_index, chunk)?;
         let elements_to_write = compute_decoded_size(last_group_length);
 
-        if decoded[elements_to_write..].iter().any(|v| *v != 0) {
-            return Err(VerificationError::NotCanonical);
-        }
+        check_canonical_tail(&decoded, elements_to_write)?;
     }
 
     Ok(())

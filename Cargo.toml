@@ -17,4 +17,5 @@ harness = false
 
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports", "plotters"] }
-rand = "0.10.1"
+proptest = { version = "1.11.0" }
+rand = { version = "0.10.1" }

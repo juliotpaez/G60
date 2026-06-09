@@ -1,6 +1,6 @@
 use std::io::Write;
 
-use crate::constants::ENCODED_TO_UTF8_MAP;
+use crate::constants::G60_TO_CHAR;
 use crate::errors::EncodingError;
 use crate::utils::div_rem;
 
@@ -10,6 +10,7 @@ pub fn encode(content: &[u8]) -> String {
 
     encode_in_writer(content, &mut slice).unwrap();
 
+    // Safety: all bytes written are drawn from G60_TO_CHAR, which is valid ASCII (hence UTF-8).
     unsafe { String::from_utf8_unchecked(slice) }
 }
 
@@ -47,7 +48,7 @@ pub fn encode_in_writer<T: Write>(content: &[u8], writer: &mut T) -> Result<usiz
     }
 
     // Last incomplete group.
-    let last_group_length = content.len() - (content.len() >> 3 << 3);
+    let last_group_length = content.len() % 8;
     if last_group_length != 0 {
         let chunk = &content[content.len() - last_group_length..];
         let encoded = compute_chunk(chunk);
@@ -69,6 +70,13 @@ pub(crate) fn compute_encoded_size(content_length: usize) -> usize {
     (11 * content_length + 7) >> 3
 }
 
+/// Encodes up to 8 bytes into an 11-character G60 output.
+///
+/// For partial chunks (fewer than 8 bytes), missing bytes are treated as zero.
+/// The caller must only use the first `compute_encoded_size(chunk.len())` elements
+/// of the result.
+///
+/// The arithmetic follows the G60 spec: <https://github.com/galenhuntington/g60>
 #[inline]
 pub(crate) fn compute_chunk(chunk: &[u8]) -> [u8; 11] {
     let c_a = chunk[0] as usize;
@@ -95,17 +103,17 @@ pub(crate) fn compute_chunk(chunk: &[u8]) -> [u8; 11] {
     let (c10, r10) = div_rem(c_h, 60);
 
     [
-        ENCODED_TO_UTF8_MAP[c1],
-        ENCODED_TO_UTF8_MAP[r1],
-        ENCODED_TO_UTF8_MAP[3 * r2 + c3],
-        ENCODED_TO_UTF8_MAP[c4],
-        ENCODED_TO_UTF8_MAP[20 * r4 + c5],
-        ENCODED_TO_UTF8_MAP[r5],
-        ENCODED_TO_UTF8_MAP[(r6 << 1) + c7],
-        ENCODED_TO_UTF8_MAP[c8],
-        ENCODED_TO_UTF8_MAP[12 * r8 + c9],
-        ENCODED_TO_UTF8_MAP[5 * r9 + c10],
-        ENCODED_TO_UTF8_MAP[r10],
+        G60_TO_CHAR[c1],
+        G60_TO_CHAR[r1],
+        G60_TO_CHAR[3 * r2 + c3],
+        G60_TO_CHAR[c4],
+        G60_TO_CHAR[20 * r4 + c5],
+        G60_TO_CHAR[r5],
+        G60_TO_CHAR[(r6 << 1) + c7],
+        G60_TO_CHAR[c8],
+        G60_TO_CHAR[12 * r8 + c9],
+        G60_TO_CHAR[5 * r9 + c10],
+        G60_TO_CHAR[r10],
     ]
 }
 

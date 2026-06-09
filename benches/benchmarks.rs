@@ -4,6 +4,7 @@ use criterion::{Bencher, BenchmarkId, Criterion, Throughput};
 use g60::encode_in_slice;
 use rand::rngs::StdRng;
 use rand::RngExt;
+use rand::SeedableRng;
 
 // ----------------------------------------------------------------------------
 // BENCHES --------------------------------------------------------------------
@@ -29,6 +30,20 @@ fn do_encode_in_slice_bench(b: &mut Bencher, &size: &usize) {
 
     b.iter(|| {
         let result = encode_in_slice(&input, &mut buffer);
+        std::hint::black_box(&result);
+    });
+}
+
+fn do_encode_in_writer_bench(b: &mut Bencher, &size: &usize) {
+    let mut input: Vec<u8> = Vec::with_capacity(size);
+    fill(&mut input);
+
+    let encoded_size = (11 * size + 7) >> 3;
+    let mut buffer: Vec<u8> = Vec::with_capacity(encoded_size);
+
+    b.iter(|| {
+        buffer.clear();
+        let result = g60::encode_in_writer(&input, &mut buffer);
         std::hint::black_box(&result);
     });
 }
@@ -60,6 +75,21 @@ fn do_decode_in_slice_bench(b: &mut Bencher, &size: &usize) {
     });
 }
 
+fn do_decode_in_writer_bench(b: &mut Bencher, &size: &usize) {
+    let mut input: Vec<u8> = Vec::with_capacity(size);
+    fill(&mut input);
+
+    let encoded = g60::encode(&input);
+
+    let mut buffer: Vec<u8> = Vec::with_capacity(size);
+
+    b.iter(|| {
+        buffer.clear();
+        let result = g60::decode_in_writer(encoded.as_str(), &mut buffer);
+        std::hint::black_box(&result);
+    });
+}
+
 fn do_verify_bench(b: &mut Bencher, &size: &usize) {
     let mut input: Vec<u8> = Vec::with_capacity(size);
     fill(&mut input);
@@ -79,8 +109,7 @@ fn do_verify_bench(b: &mut Bencher, &size: &usize) {
 fn fill(vector: &mut Vec<u8>) {
     let capacity = vector.capacity();
 
-    // weak randomness is plenty; we just want to not be completely friendly to the branch predictor
-    let mut random: StdRng = rand::make_rng();
+    let mut random = StdRng::seed_from_u64(0xDEAD_BEEF_1234_5678);
     while vector.len() < capacity {
         vector.push(random.random::<u8>());
     }
@@ -110,6 +139,11 @@ fn encode_benchmarks(c: &mut Criterion, label: &str, byte_sizes: &[usize]) {
                 BenchmarkId::new("encode_in_slice", size),
                 size,
                 do_encode_in_slice_bench,
+            )
+            .bench_with_input(
+                BenchmarkId::new("encode_in_writer", size),
+                size,
+                do_encode_in_writer_bench,
             );
     }
 
@@ -129,6 +163,11 @@ fn decode_benchmarks(c: &mut Criterion, label: &str, byte_sizes: &[usize]) {
                 BenchmarkId::new("decode_in_slice", size),
                 size,
                 do_decode_in_slice_bench,
+            )
+            .bench_with_input(
+                BenchmarkId::new("decode_in_writer", size),
+                size,
+                do_decode_in_writer_bench,
             );
     }
 

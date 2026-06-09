@@ -1,6 +1,9 @@
-pub(crate) static ENCODED_TO_UTF8_MAP: &[u8; 60] =
+// Maps a G60 value (0..59) to its ASCII character in the encoded string.
+pub(crate) const G60_TO_CHAR: &[u8; 60] =
     b"0123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-pub(crate) static UTF8_TO_ENCODED_MAP: &[u8; 123] = &[
+
+// Maps an ASCII character to its G60 value (0..59). 255 means invalid.
+pub(crate) const CHAR_TO_G60: &[u8; 123] = &[
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 255, 255, 255,
@@ -19,10 +22,10 @@ mod tests {
 
     #[test]
     fn test_reverse_mapping() {
-        for (index, c) in ENCODED_TO_UTF8_MAP.iter().enumerate() {
-            let utf8 = UTF8_TO_ENCODED_MAP[*c as usize];
+        for (index, c) in G60_TO_CHAR.iter().enumerate() {
+            let value = CHAR_TO_G60[*c as usize];
 
-            assert_eq!(index, utf8 as usize, "Incorrect for {}", c)
+            assert_eq!(index, value as usize, "Incorrect for {}", c)
         }
     }
 }
