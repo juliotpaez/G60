@@ -29,7 +29,34 @@ pub fn decode_in_slice(encoded: &str, slice: &mut [u8]) -> Result<usize, Decodin
         });
     }
 
-    decode_in_writer(encoded, &mut std::io::Cursor::new(slice))
+    let last_group_length = bytes.len() - bytes.len() / 11 * 11;
+    if let 1 | 4 | 8 = last_group_length {
+        return Err(DecodingError::Verification(
+            VerificationError::InvalidLength,
+        ));
+    }
+
+    let mut pos = 0;
+    let mut chunk_index = 0;
+
+    for chunk in bytes.chunks_exact(11) {
+        let decoded = compute_chunk(chunk_index, chunk)?;
+        slice[pos..pos + 8].copy_from_slice(&decoded);
+        pos += 8;
+        chunk_index += 11;
+    }
+
+    if last_group_length != 0 {
+        let chunk = &bytes[bytes.len() - last_group_length..];
+        let decoded = compute_chunk(chunk_index, chunk)?;
+        let elements_to_write = compute_decoded_size(last_group_length);
+
+        check_canonical_tail(&decoded, elements_to_write)?;
+
+        slice[pos..pos + elements_to_write].copy_from_slice(&decoded[..elements_to_write]);
+    }
+
+    Ok(required_slice_size)
 }
 
 /// Decodes a G60 encoded string.
@@ -103,18 +130,27 @@ pub(crate) fn map_char_to_g60_index(
     chunk: &[u8],
 ) -> Result<usize, VerificationError> {
     match chunk.get(index) {
-        Some(v) => {
-            let value = *CHAR_TO_G60.get(*v as usize).unwrap_or(&255) as usize;
+        Some(&v) => {
+            let value = CHAR_TO_G60[v as usize] as usize;
             if value == 255 {
                 Err(VerificationError::InvalidByte {
                     index: chunk_index + index,
-                    byte: *v,
+                    byte: v,
                 })
             } else {
                 Ok(value)
             }
         }
         None => Ok(0),
+    }
+}
+
+#[inline(always)]
+fn to_u8(value: usize) -> Result<u8, VerificationError> {
+    if value > 255 {
+        Err(VerificationError::NotCanonical)
+    } else {
+        Ok(value as u8)
     }
 }
 
@@ -147,16 +183,16 @@ pub(crate) fn compute_chunk(
     let (b6, r6) = div_rem(60 * c7 + c8, 24);
     let (b7, r7) = div_rem(c9, 5);
 
-    let c_a = u8::try_from(b1).map_err(|_| VerificationError::NotCanonical)?;
-    let c_b = u8::try_from(r1 * 20 + b2).map_err(|_| VerificationError::NotCanonical)?;
-    let c_c = u8::try_from(r2 * 90 + b3_bis).map_err(|_| VerificationError::NotCanonical)?;
-    let c_d = u8::try_from(128 * r3_bis + b4).map_err(|_| VerificationError::NotCanonical)?;
-    let c_e = u8::try_from(r4 * 30 + b5).map_err(|_| VerificationError::NotCanonical)?;
-    let c_f = u8::try_from(r5 * 150 + b6).map_err(|_| VerificationError::NotCanonical)?;
-    let c_g = u8::try_from(r6 * 12 + b7).map_err(|_| VerificationError::NotCanonical)?;
-    let c_h = u8::try_from(60 * r7 + c10).map_err(|_| VerificationError::NotCanonical)?;
-
-    Ok([c_a, c_b, c_c, c_d, c_e, c_f, c_g, c_h])
+    Ok([
+        to_u8(b1)?,
+        to_u8(r1 * 20 + b2)?,
+        to_u8(r2 * 90 + b3_bis)?,
+        to_u8(128 * r3_bis + b4)?,
+        to_u8(r4 * 30 + b5)?,
+        to_u8(r5 * 150 + b6)?,
+        to_u8(r6 * 12 + b7)?,
+        to_u8(60 * r7 + c10)?,
+    ])
 }
 
 // ----------------------------------------------------------------------------

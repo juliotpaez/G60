@@ -29,7 +29,23 @@ pub fn encode_in_slice(content: &[u8], slice: &mut [u8]) -> Result<usize, Encodi
         });
     }
 
-    encode_in_writer(content, &mut std::io::Cursor::new(slice))
+    let mut pos = 0;
+
+    for chunk in content.chunks_exact(8) {
+        let encoded = compute_chunk(chunk);
+        slice[pos..pos + 11].copy_from_slice(&encoded);
+        pos += 11;
+    }
+
+    let last_group_length = content.len() % 8;
+    if last_group_length != 0 {
+        let chunk = &content[content.len() - last_group_length..];
+        let encoded = compute_chunk(chunk);
+        let elements_to_write = compute_encoded_size(last_group_length);
+        slice[pos..pos + elements_to_write].copy_from_slice(&encoded[..elements_to_write]);
+    }
+
+    Ok(required_slice_size)
 }
 
 /// Encodes a list of bytes into a G60 encoding format.
