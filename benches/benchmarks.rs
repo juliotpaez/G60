@@ -1,7 +1,7 @@
 use criterion::criterion_group;
 use criterion::criterion_main;
 use criterion::{Bencher, BenchmarkId, Criterion, Throughput};
-use g60::encode_in_slice;
+use g60::{compute_encoded_size, encode_in_slice};
 use rand::rngs::StdRng;
 use rand::RngExt;
 use rand::SeedableRng;
@@ -24,9 +24,8 @@ fn do_encode_in_slice_bench(b: &mut Bencher, &size: &usize) {
     let mut input: Vec<u8> = Vec::with_capacity(size);
     fill(&mut input);
 
-    let mut buffer = Vec::with_capacity(size << 2);
-    // conservative estimate of encoded size
-    buffer.resize(size * 4, 0);
+    let encoded_size = compute_encoded_size(size);
+    let mut buffer = vec![0u8; encoded_size];
 
     b.iter(|| {
         let result = encode_in_slice(&input, &mut buffer);

@@ -5,6 +5,7 @@ use crate::errors::EncodingError;
 use crate::utils::div_rem;
 
 /// Encodes a list of bytes into a G60 encoding format.
+#[must_use]
 pub fn encode(content: &[u8]) -> String {
     let mut slice = Vec::with_capacity(compute_encoded_size(content.len()));
 
@@ -81,8 +82,8 @@ pub fn encode_in_writer<T: Write>(content: &[u8], writer: &mut T) -> Result<usiz
 // ----------------------------------------------------------------------------
 
 /// Computes `ceil(11 * content_length / 8)` faster using only integers.
-#[inline(always)]
-pub(crate) fn compute_encoded_size(content_length: usize) -> usize {
+#[inline]
+pub fn compute_encoded_size(content_length: usize) -> usize {
     (11 * content_length + 7) >> 3
 }
 
@@ -95,6 +96,7 @@ pub(crate) fn compute_encoded_size(content_length: usize) -> usize {
 /// The arithmetic follows the G60 spec: <https://github.com/galenhuntington/g60>
 #[inline]
 pub(crate) fn compute_chunk(chunk: &[u8]) -> [u8; 11] {
+    debug_assert!(!chunk.is_empty());
     let c_a = chunk[0] as usize;
     let c_b = *chunk.get(1).unwrap_or(&0) as usize;
     let c_c = *chunk.get(2).unwrap_or(&0) as usize;
@@ -140,6 +142,15 @@ pub(crate) fn compute_chunk(chunk: &[u8]) -> [u8; 11] {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_encode_empty() {
+        assert_eq!(encode(&[]), "");
+        assert_eq!(encode_in_slice(&[], &mut []).unwrap(), 0);
+        let mut v = Vec::new();
+        assert_eq!(encode_in_writer(&[], &mut v).unwrap(), 0);
+        assert!(v.is_empty());
+    }
 
     #[test]
     fn test_compute_encoded_size() {
@@ -255,6 +266,20 @@ mod tests {
                     }
                 }
 
+                prev = current;
+            }
+        }
+
+        // Sizes 3..=8: check that the first byte dominates within a single chunk.
+        for size in 3usize..=8 {
+            let mut prev = 0u8;
+            for current in 1u8..=255 {
+                let prev_encoded = encode(&vec![prev; size]);
+                let current_encoded = encode(&vec![current; size]);
+                assert!(
+                    prev_encoded < current_encoded,
+                    "Monotonicity failed for size {size}, byte {current}"
+                );
                 prev = current;
             }
         }

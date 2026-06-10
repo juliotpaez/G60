@@ -6,11 +6,9 @@ use crate::utils::div_rem;
 
 /// Decodes a G60 encoded string.
 pub fn decode(encoded: &str) -> Result<Vec<u8>, DecodingError> {
-    let mut slice = vec![0; compute_decoded_size(encoded.len())];
-
-    decode_in_slice(encoded, &mut slice)?;
-
-    Ok(slice)
+    let mut result = Vec::with_capacity(compute_decoded_size(encoded.len()));
+    decode_in_writer(encoded, &mut result)?;
+    Ok(result)
 }
 
 /// Decodes a G60 encoded string.
@@ -104,8 +102,8 @@ pub fn decode_in_writer<T: Write>(encoded: &str, writer: &mut T) -> Result<usize
 // ----------------------------------------------------------------------------
 
 /// Computes `floor(8 * encoded_length / 11)` faster using only integers.
-#[inline(always)]
-pub(crate) fn compute_decoded_size(encoded_length: usize) -> usize {
+#[inline]
+pub fn compute_decoded_size(encoded_length: usize) -> usize {
     (encoded_length << 3) / 11
 }
 
@@ -145,7 +143,7 @@ pub(crate) fn map_char_to_g60_index(
     }
 }
 
-#[inline(always)]
+#[inline]
 fn to_u8(value: usize) -> Result<u8, VerificationError> {
     if value > 255 {
         Err(VerificationError::NotCanonical)
@@ -205,6 +203,39 @@ mod tests {
     use crate::constants::G60_TO_CHAR;
     use crate::encode;
     use std::collections::HashSet;
+    use crate::errors::VerificationError;
+
+    #[test]
+    fn test_decode_empty() {
+        assert_eq!(decode("").unwrap(), b"");
+        assert_eq!(decode_in_slice("", &mut []).unwrap(), 0);
+        let mut v = Vec::new();
+        assert_eq!(decode_in_writer("", &mut v).unwrap(), 0);
+        assert!(v.is_empty());
+    }
+
+    #[test]
+    fn test_decode_in_writer_invalid_length() {
+        let error =
+            decode_in_writer("x", &mut Vec::new()).expect_err("The decoding cannot succeed");
+        assert_eq!(
+            error,
+            DecodingError::Verification(VerificationError::InvalidLength)
+        );
+    }
+
+    #[test]
+    fn test_decode_in_writer_invalid_byte() {
+        let error = decode_in_writer("Hello, world!", &mut Vec::new())
+            .expect_err("The decoding cannot succeed");
+        assert_eq!(
+            error,
+            DecodingError::Verification(VerificationError::InvalidByte {
+                index: 5,
+                byte: b',',
+            })
+        );
+    }
 
     #[test]
     fn test_compute_decoded_size() {

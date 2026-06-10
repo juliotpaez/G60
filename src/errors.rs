@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 /// A wrapping error of all possible errors of the G60 encoding library.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Error {
     Encoding(EncodingError),
     Decoding(DecodingError),
@@ -36,7 +36,7 @@ impl Display for Error {
 // ----------------------------------------------------------------------------
 
 /// An error returned during the encoding process.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum EncodingError {
     /// The result buffer has not enough space to held the encoding result.
     NotEnoughSpaceInSlice { actual: usize, required: usize },
@@ -77,7 +77,7 @@ impl From<std::io::Error> for EncodingError {
 // ----------------------------------------------------------------------------
 
 /// An error returned during the decoding process.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum DecodingError {
     /// A verification error over the encoded string.
     Verification(VerificationError),
@@ -136,7 +136,7 @@ impl From<DecodingError> for Error {
 // ----------------------------------------------------------------------------
 
 /// An error returned during the verification process.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum VerificationError {
     /// The length of the encoded string is incorrect.
     InvalidLength,
